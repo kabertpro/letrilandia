@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Letrilandia — Jugamos con las letras</title>
+
+<!-- PWA: installable app metadata -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFC93C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Letrilandia">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LETRILANDIA — design tokens
+   ============================================================ */
+:root{
+  --sky-top:#EAF6FF;
+  --sky-bottom:#DCEEFF;
+  --sun:#FFC93C;
+  --ink:#3A3358;
+  --ink-soft:#6B6690;
+  --white:#FFFFFF;
+  --card:#FFFFFF;
+  --shadow: 0 10px 0 rgba(58,51,88,0.08), 0 16px 30px rgba(58,51,88,0.12);
+  --shadow-sm: 0 6px 0 rgba(58,51,88,0.08), 0 8px 16px rgba(58,51,88,0.10);
+  --radius-xl: 40px;
+  --radius-lg: 28px;
+  --radius-md: 20px;
+  --green-ok:#3FCF7F;
+  --grass:#5FBF6E;
+  --gold:#FFC93C;
+
+  --vowel-a:#FF6B6B;
+  --vowel-e:#FFC93C;
+  --vowel-i:#3BC9C9;
+  --vowel-o:#5B8DEF;
+  --vowel-u:#B185DB;
+
+  --font-display:'Baloo 2', ui-rounded, 'Segoe UI Rounded', system-ui, sans-serif;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  margin:0;padding:0;height:100%;
+  font-family:var(--font-display);
+  color:var(--ink);
+  overflow:hidden;
+  overscroll-behavior:none;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
+}
+body{
+  background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-bottom) 100%);
+  min-height:100vh;
+  min-height:100dvh;
+}
+#app{
+  position:relative;
+  width:100%;
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* ---------- background decoration ---------- */
+.bg-deco{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.cloud{position:absolute;background:#fff;border-radius:50%;opacity:.75;filter:blur(0.5px);}
+.blob{position:absolute;border-radius:50%;opacity:.35;filter:blur(2px);}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@keyframes floatX{0%,100%{transform:translateX(0)}50%{transform:translateX(14px)}}
+@media (prefers-reduced-motion: no-preference){
+  .float-slow{animation:floatY 6s ease-in-out infinite;}
+  .float-slow2{animation:floatY 7.5s ease-in-out infinite;}
+  .float-x{animation:floatX 8s ease-in-out infinite;}
+}
+
+/* ---------- generic layout ---------- */
+.screen{
+  position:relative;z-index:1;
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:24px;
+  width:100%;height:100%;
+  gap:18px;
+}
+.screen.top-align{justify-content:flex-start;padding-top:max(20px, env(safe-area-inset-top));}
+
+/* dedicated scrollable screen (used by name entry) — single scroll
+   container so no nested / duplicate scrollbars ever appear */
+.screen.name-screen{
+  display:block;
+  padding:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.screen.name-screen::-webkit-scrollbar{ width:8px; }
+.screen.name-screen::-webkit-scrollbar-track{ background:transparent; }
+.screen.name-screen::-webkit-scrollbar-thumb{ background:rgba(58,51,88,.22); border-radius:999px; }
+
+.big-title{
+  font-weight:800;
+  font-size:clamp(2.6rem, 9vw, 4.6rem);
+  letter-spacing:1px;
+  margin:0;
+  text-align:center;
+  color:var(--ink);
+  text-shadow:0 4px 0 rgba(255,255,255,0.6);
+}
+.subtitle{
+  font-weight:600;
+  font-size:clamp(1.1rem, 4vw, 1.6rem);
+  color:var(--ink-soft);
+  margin:0;
+  text-align:center;
+}
+.instruction{
+  font-weight:700;
+  font-size:clamp(1.3rem, 5.5vw, 2rem);
+  text-align:center;
+  color:var(--ink);
+  margin:0 0 4px 0;
+  padding:0 12px;
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  font-family:var(--font-display);
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  color:#fff;
+  border-radius:999px;
+  box-shadow:var(--shadow);
+  transition:transform .12s ease, box-shadow .12s ease;
+  touch-action:manipulation;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.btn:active{transform:translateY(6px) scale(.98);box-shadow:var(--shadow-sm);}
+.btn-primary{
+  background:linear-gradient(180deg,#FFD966,var(--sun));
+  color:#5A4300;
+  font-size:clamp(1.4rem,6vw,2.1rem);
+  padding:22px 56px;
+}
+.btn-big-play{
+  font-size:clamp(1.6rem,7vw,2.4rem);
+  padding:26px 64px;
+}
+.btn-home{
+  background:linear-gradient(180deg,#8FB6FF,#5B8DEF);
+  color:#fff;
+  font-size:clamp(1.1rem,4.6vw,1.5rem);
+  padding:18px 34px;
+}
+.btn-continue{
+  background:linear-gradient(180deg,#8CEBB0,var(--green-ok));
+  color:#0B4A28;
+  font-size:clamp(1.1rem,4.6vw,1.5rem);
+  padding:18px 34px;
+}
+.tile{
+  background:var(--card);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  border:none;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;
+  padding:22px 14px;
+  transition:transform .12s ease, box-shadow .12s ease;
+  font-family:var(--font-display);
+  position:relative;
+}
+.tile:active{transform:translateY(6px) scale(.98);box-shadow:var(--shadow-sm);}
+.tile .tile-emoji{font-size:clamp(2.4rem,10vw,3.4rem);line-height:1;}
+.tile .tile-label{font-weight:700;font-size:clamp(1rem,4vw,1.3rem);color:var(--ink);text-align:center;}
+.tile.locked{opacity:.55;filter:grayscale(.4);}
+.tile.locked::after{
+  content:"🔒";position:absolute;top:10px;right:10px;font-size:1.3rem;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  width:100%;
+  max-width:560px;
+}
+.menu-grid.single{grid-template-columns:1fr;max-width:420px;}
+
+/* ---------- back / small controls ---------- */
+.back-btn{
+  position:absolute; top:max(16px, env(safe-area-inset-top)); left:16px; z-index:5;
+  background:var(--white); color:var(--ink);
+  border:none; border-radius:999px;
+  width:56px;height:56px;
+  font-size:1.5rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--shadow-sm);
+  cursor:pointer;
+}
+.back-btn:active{transform:translateY(3px);}
+
+.gear-btn{
+  position:absolute; bottom:max(16px, env(safe-area-inset-bottom)); right:16px; z-index:5;
+  background:rgba(255,255,255,.7); color:var(--ink-soft);
+  border:none;border-radius:50%;
+  width:46px;height:46px;
+  font-size:1.3rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.gear-btn .hold-ring{
+  position:absolute;inset:-4px;border-radius:50%;
+  background:conic-gradient(var(--sun) calc(var(--p,0)*1%), transparent 0);
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask:radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+}
+
+.credits-btn{
+  position:absolute; bottom:max(16px, env(safe-area-inset-bottom)); left:16px; z-index:5;
+  background:rgba(255,255,255,.7); color:var(--ink-soft);
+  border:none;border-radius:999px;
+  padding:11px 18px;
+  font-family:var(--font-display);
+  font-weight:700; font-size:.85rem;
+  display:flex;align-items:center;gap:6px;
+  cursor:pointer;
+}
+.credits-btn:active{transform:translateY(2px);}
+
+/* ---------- global fullscreen toggle (persists across all screens) ---------- */
+.fs-toggle{
+  position:fixed; top:max(16px, env(safe-area-inset-top)); left:84px; z-index:70;
+  background:rgba(255,255,255,.78); color:var(--ink-soft);
+  border:none;border-radius:50%;
+  width:44px;height:44px;
+  font-size:1.15rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--shadow-sm);
+  cursor:pointer;
+}
+.fs-toggle:active{transform:translateY(2px);}
+
+/* ---------- rotate-device guard (forces portrait use on phones/tablets) ---------- */
+.rotate-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom));
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  text-align:center;padding:24px;
+}
+@media (max-width:1000px) and (orientation:landscape){
+  .rotate-overlay{display:flex;}
+}
+.rotate-icon{font-size:clamp(3.5rem,14vw,5rem);animation:floatY 2s ease-in-out infinite;}
+
+/* ---------- timer badge ---------- */
+.timer-badge{
+  position:absolute; top:max(16px, env(safe-area-inset-top)); right:16px; z-index:5;
+  background:var(--white); color:var(--ink);
+  border-radius:999px; padding:12px 20px;
+  font-weight:800; font-size:clamp(1rem,4vw,1.3rem);
+  box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:6px;
+  font-variant-numeric:tabular-nums;
+}
+.timer-badge.urgent{color:#B23B3B;}
+
+/* ---------- name badge ---------- */
+.name-badge{
+  position:absolute; top:max(16px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:4;
+  background:rgba(255,255,255,.85); border-radius:999px;
+  padding:8px 18px 8px 10px; display:flex;align-items:center;gap:8px;
+  font-weight:700; font-size:clamp(.9rem,3.6vw,1.15rem);
+  box-shadow:var(--shadow-sm); cursor:pointer; border:none; color:var(--ink);
+  max-width:70vw;
+}
+.name-badge .avatar{font-size:1.4rem;}
+.name-badge .pencil{opacity:.6;font-size:.9rem;}
+
+.reward-strip{
+  display:flex;gap:14px;justify-content:center;align-items:center;
+  background:rgba(255,255,255,.6); border-radius:999px;
+  padding:8px 18px; font-weight:700; font-size:clamp(.85rem,3.4vw,1.05rem);
+}
+.reward-strip .rw{display:flex;align-items:center;gap:4px;}
+
+/* ---------- name entry screen ---------- */
+.name-entry-panel{
+  width:100%;
+  max-width:480px;
+  margin:0 auto;
+  box-sizing:border-box;
+  padding:max(24px, env(safe-area-inset-top)) 16px 48px;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  min-height:100%;
+}
+.name-input{
+  font-family:var(--font-display);
+  font-weight:800;
+  font-size:clamp(1.4rem,7vw,2rem);
+  text-align:center;
+  border:4px solid #C9D8F2;
+  border-radius:24px;
+  padding:16px 20px;
+  width:100%;
+  max-width:420px;
+  color:var(--ink);
+  background:#fff;
+  outline:none;
+}
+.name-input:focus{border-color:var(--sun);}
+.kb-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:10px;}
+.kb-letters{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.kb-key{
+  aspect-ratio:1;border:none;border-radius:10px;color:#fff;font-weight:800;
+  font-size:clamp(.85rem,3.6vw,1.05rem);cursor:pointer;font-family:var(--font-display);
+  box-shadow:0 3px 0 rgba(0,0,0,.15);
+}
+.kb-key:active{transform:translateY(2px);box-shadow:none;}
+.kb-emojis{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.kb-emoji-key{
+  border:none;background:#EDF2FC;border-radius:12px;font-size:1.3rem;
+  padding:8px 12px;cursor:pointer;
+}
+.kb-emoji-key:active{transform:translateY(2px);}
+.kb-actions{display:flex;gap:10px;justify-content:center;}
+.kb-actions .small-btn{width:auto;padding:0 18px;font-size:.95rem;}
+
+/* ---------- letter cards ("letter creatures") ---------- */
+.letter-card{
+  --lc:#5B8DEF;
+  position:relative;
+  background:var(--lc);
+  color:#fff;
+  border:none;
+  border-radius:28px;
+  box-shadow:0 8px 0 rgba(0,0,0,0.15), 0 12px 20px rgba(0,0,0,0.15);
+  width:clamp(70px,20vw,120px);
+  height:clamp(70px,20vw,120px);
+  font-size:clamp(2rem,9vw,3.4rem);
+  font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:transform .15s ease;
+}
+.letter-card:active{transform:translateY(6px) scale(.96);}
+.letter-card.correct{animation:pop-good .5s ease;}
+.letter-card.wrong{animation:shake .45s ease;}
+.letter-card.done{opacity:.5;pointer-events:none;}
+@keyframes pop-good{
+  0%{transform:scale(1)}
+  35%{transform:scale(1.25) rotate(-4deg)}
+  60%{transform:scale(0.95) rotate(3deg)}
+  100%{transform:scale(1)}
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-10px)}
+  40%{transform:translateX(10px)}
+  60%{transform:translateX(-8px)}
+  80%{transform:translateX(8px)}
+}
+
+/* ---------- rows / wrap layouts ---------- */
+.row-wrap{
+  display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;
+  max-width:640px;
+}
+
+/* ---------- ordering slots ---------- */
+.order-area{display:flex;flex-direction:column;align-items:center;gap:26px;width:100%;}
+.slots-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.slot{
+  width:clamp(60px,16vw,100px);
+  height:clamp(60px,16vw,100px);
+  border-radius:22px;
+  border:4px dashed #C9D8F2;
+  background:rgba(255,255,255,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.6rem,7vw,2.6rem);
+  font-weight:800;
+  color:#B9C4DC;
+}
+.slot.filled{border-style:solid;border-color:transparent;color:#fff;}
+.bank-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;min-height:clamp(70px,20vw,120px);}
+.draggable{touch-action:none;}
+.dragging{position:fixed;z-index:50;pointer-events:none;transform:scale(1.08);}
+
+/* ---------- choice buttons ---------- */
+.choice-row{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+.choice-btn{
+  font-family:var(--font-display);font-weight:800;
+  border:none;color:#fff;border-radius:26px;
+  box-shadow:var(--shadow);
+  font-size:clamp(1.2rem,5vw,1.7rem);
+  padding:22px 30px;min-width:150px;
+  cursor:pointer;
+}
+.choice-btn:active{transform:translateY(6px);box-shadow:var(--shadow-sm);}
+
+/* ---------- feedback banner ---------- */
+.feedback{
+  position:fixed;left:50%;bottom:40px;transform:translate(-50%,20px);
+  background:var(--white);color:var(--ink);
+  font-weight:700;font-size:clamp(1.1rem,4.5vw,1.5rem);
+  padding:16px 28px;border-radius:999px;box-shadow:var(--shadow);
+  opacity:0;transition:opacity .25s ease, transform .25s ease;
+  z-index:40;text-align:center;max-width:88vw;
+  pointer-events:none;
+}
+.feedback.show{opacity:1;transform:translate(-50%,0);}
+.feedback.good{background:linear-gradient(180deg,#7EE8A8,var(--green-ok));color:#0B4A28;}
+.feedback.gentle{background:#FFF3D6;color:#7A5A00;}
+
+/* ---------- celebration overlay ---------- */
+.celebrate{
+  position:fixed;inset:0;z-index:60;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;background:rgba(234,246,255,.92);
+  opacity:0;pointer-events:none;transition:opacity .3s ease;
+  padding:20px;
+}
+.celebrate.show{opacity:1;pointer-events:auto;}
+.celebrate .big-emoji{font-size:clamp(4.5rem,24vw,8.5rem);animation:pop-good 1s ease infinite;}
+.celebrate .big-emoji.tier-trophy{animation:trophy-spin 1.4s ease infinite;filter:drop-shadow(0 0 22px rgba(255,201,60,.9));}
+@keyframes trophy-spin{
+  0%{transform:scale(1) rotate(0deg)}
+  25%{transform:scale(1.2) rotate(-8deg)}
+  50%{transform:scale(1.35) rotate(0deg)}
+  75%{transform:scale(1.2) rotate(8deg)}
+  100%{transform:scale(1) rotate(0deg)}
+}
+.celebrate .time-line{font-weight:700;font-size:clamp(1rem,4vw,1.3rem);color:var(--ink-soft);}
+.celebrate .btn-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+.sparkle{
+  position:fixed;z-index:59;pointer-events:none;font-size:1.4rem;
+  animation:sparkle-pop 1s ease forwards;
+}
+@keyframes sparkle-pop{
+  0%{opacity:0;transform:scale(0) translateY(0);}
+  30%{opacity:1;transform:scale(1.3) translateY(-10px);}
+  100%{opacity:0;transform:scale(.6) translateY(-60px);}
+}
+.confetti-piece{
+  position:fixed;top:-20px;z-index:59;font-size:1.6rem;pointer-events:none;
+  animation:fall linear forwards;
+}
+@keyframes fall{
+  to{transform:translateY(110vh) rotate(360deg);opacity:.9;}
+}
+.gold-flash{
+  position:fixed;inset:0;z-index:58;pointer-events:none;
+  background:radial-gradient(circle at 50% 40%, rgba(255,201,60,.55), transparent 60%);
+  opacity:0;animation:flash-fade 1s ease forwards;
+}
+@keyframes flash-fade{
+  0%{opacity:0;}
+  20%{opacity:1;}
+  100%{opacity:0;}
+}
+
+/* ---------- stars / progress ---------- */
+.stars-row{display:flex;gap:6px;}
+.stars-row span{font-size:1.4rem;opacity:.25;}
+.stars-row span.on{opacity:1;}
+
+/* ---------- adult config screen ---------- */
+.config-panel{
+  width:100%;max-width:640px;height:100%;
+  overflow-y:auto;
+  padding:20px 18px 40px;
+}
+.config-section{
+  background:var(--white);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);padding:18px;margin-bottom:16px;
+}
+.config-section h3{margin:0 0 12px 0;font-size:1.15rem;color:var(--ink);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;}
+.toggle-row span{font-weight:600;font-size:1rem;}
+.switch{
+  position:relative;width:56px;height:32px;background:#DCE3F2;border-radius:999px;
+  cursor:pointer;border:none;flex-shrink:0;
+}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .18s ease;
+}
+.switch.on{background:var(--green-ok);}
+.switch.on::after{transform:translateX(24px);}
+.letters-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:8px;
+}
+.letter-check{
+  aspect-ratio:1;border-radius:12px;border:none;font-weight:800;font-size:1.05rem;
+  background:#EDF2FC;color:#8A93AE;cursor:pointer;
+}
+.letter-check.checked{background:var(--sun);color:#5A4300;}
+.danger-btn{
+  background:#FFE3E3;color:#B23B3B;border:none;border-radius:16px;
+  font-family:var(--font-display);font-weight:700;padding:14px 18px;width:100%;
+  font-size:1rem;cursor:pointer;
+}
+.small-btn{
+  background:#EDF2FC;color:var(--ink);border:none;border-radius:14px;
+  font-family:var(--font-display);font-weight:700;padding:10px 16px;
+  font-size:1.1rem;cursor:pointer;width:48px;height:48px;
+}
+.stepper-row{display:flex;align-items:center;gap:14px;}
+.stepper-val{font-weight:800;font-size:1.3rem;min-width:80px;text-align:center;}
+.name-field{
+  display:flex;gap:10px;align-items:center;
+}
+.name-field input{
+  flex:1;font-family:var(--font-display);font-weight:700;font-size:1.05rem;
+  border:2px solid #DCE3F2;border-radius:14px;padding:12px 14px;color:var(--ink);
+}
+.volume-row{display:flex;align-items:center;gap:12px;}
+.volume-row input[type=range]{
+  flex:1; accent-color:var(--sun); height:8px;
+}
+.volume-val{font-weight:800;min-width:48px;text-align:right;}
+.hint-text{font-size:.8rem;color:var(--ink-soft);margin:8px 0 0 0;text-align:left;}
+
+/* mascot bounce */
+.mascot{font-size:clamp(3.4rem,16vw,6rem);}
+@media (prefers-reduced-motion: no-preference){
+  .mascot{animation:floatY 3s ease-in-out infinite;}
+}
+
+/* ---------- splash screen ---------- */
+.splash-screen{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#FFE9BE 0%,#BFE3FF 55%,#EAF6FF 100%);
+  overflow:hidden;
+}
+.splash-content{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  animation:splash-in 0.9s ease;
+}
+@keyframes splash-in{
+  0%{opacity:0;transform:scale(.7) translateY(30px);}
+  100%{opacity:1;transform:scale(1) translateY(0);}
+}
+.splash-mascot{font-size:clamp(4rem,20vw,7.5rem);animation:floatY 2.2s ease-in-out infinite;}
+.splash-title{
+  font-family:var(--font-display);font-weight:800;
+  font-size:clamp(2.4rem,10vw,4rem);color:var(--ink);margin:0;
+  text-shadow:0 4px 0 rgba(255,255,255,.6);
+}
+.splash-sub{font-weight:600;color:var(--ink-soft);margin:0;font-size:clamp(1rem,4vw,1.3rem);}
+.splash-bar{
+  width:min(70vw,260px);height:14px;background:rgba(255,255,255,.6);
+  border-radius:999px;overflow:hidden;margin-top:14px;
+}
+.splash-bar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#FFD966,var(--sun));
+  border-radius:999px;transition:width 2s ease;
+}
+.splash-skip{
+  margin-top:18px;font-size:.85rem;color:var(--ink-soft);font-weight:600;
+  background:none;border:none;text-decoration:underline;cursor:pointer;
+  font-family:var(--font-display);
+}
+.splash-sparkle{position:absolute;font-size:1.6rem;opacity:.85;}
+
+/* ---------- credits ---------- */
+.credits-card{
+  background:var(--white);border-radius:32px;box-shadow:var(--shadow);
+  padding:38px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;
+  max-width:420px;width:100%;
+}
+.credits-logo{font-size:3.2rem;}
+.credits-actions{display:flex;flex-direction:column;gap:14px;width:100%;margin-top:14px;}
+.credits-actions .btn{width:100%;font-size:1.1rem;padding:16px 20px;}
+
+@media (min-width:720px){
+  .menu-grid{max-width:680px;}
+  .letters-grid{grid-template-columns:repeat(9,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="feedbackLayer" class="feedback"></div>
+<button id="fsToggle" class="fs-toggle" aria-label="Pantalla completa" title="Pantalla completa">⛶</button>
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-icon">📱↻</div>
+  <div class="big-title" style="font-size:clamp(1.4rem,6vw,1.9rem);">Gira tu dispositivo</div>
+  <p class="subtitle">Letrilandia se juega en modo vertical 📐</p>
+</div>
+
+<script>
+/* ============================================================
+   LETRILANDIA — app logic
+   ============================================================ */
+(function(){
+"use strict";
+
+/* ---------------- data ---------------- */
+var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+var VOWELS = ["A","E","I","O","U"];
+var VOWEL_COLOR = {A:"var(--vowel-a)",E:"var(--vowel-e)",I:"var(--vowel-i)",O:"var(--vowel-o)",U:"var(--vowel-u)"};
+var CONSONANT_PALETTE = ["#5FBF6E","#FF8C5A","#4EA8DE","#F76E9E","#FFB84D","#7ED6A7","#6C9EFF","#E28BE2"];
+var LETTER_SOUND = {A:"a",B:"be",C:"ce",D:"de",E:"e",F:"efe",G:"ge",H:"hache",I:"i",J:"jota",K:"ka",
+  L:"ele",M:"eme",N:"ene",O:"o",P:"pe",Q:"cu",R:"erre",S:"ese",T:"te",U:"u",V:"uve",W:"doble u",
+  X:"equis",Y:"ye",Z:"zeta"};
+var NAME_EMOJIS = ["🦄","🐶","🐱","🌟","🎈","🌈","😊","🚀","🍦","⚽","🦋","🐬"];
+
+function isVowel(l){ return VOWELS.indexOf(l) !== -1; }
+function colorFor(l){
+  if(isVowel(l)) return VOWEL_COLOR[l];
+  var idx = ALPHABET.indexOf(l);
+  return CONSONANT_PALETTE[idx % CONSONANT_PALETTE.length];
+}
+function shuffle(arr){
+  var a = arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function textLen(v){ return Array.from(v).length; }
+
+/* ---------------- persistence ---------------- */
+var CONFIG_KEY = "ll_config_v3";
+var PROGRESS_KEY = "ll_progress_v2";
+
+function defaultConfig(){
+  var sel = {};
+  ALPHABET.forEach(function(l){ sel[l]=true; });
+  return { selectedLetters: sel, vowelsOnly:false, voiceEnabled:true, soundEnabled:true,
+           childName:"", targetSeconds:20, musicEnabled:true, musicVolume:55 };
+}
+function defaultProgress(){
+  return {
+    vocalesDone: { conoce:false, encuentra:false, ordena:false, vocalConsonante:false },
+    alfabetoUnlocked:false,
+    ordenaAlfabetoLevel:3,
+    completarUnlocked:false,
+    quefaltaUnlocked:false,
+    rewardCounts:{ trophy:0, superstar:0, star:0, smiley:0 }
+  };
+}
+function loadJSON(key, fallback){
+  try{
+    var raw = localStorage.getItem(key);
+    if(!raw) return fallback;
+    var parsed = JSON.parse(raw);
+    return Object.assign({}, fallback, parsed);
+  }catch(e){ return fallback; }
+}
+var config = loadJSON(CONFIG_KEY, defaultConfig());
+var progress = loadJSON(PROGRESS_KEY, defaultProgress());
+if(!config.selectedLetters) config.selectedLetters = defaultConfig().selectedLetters;
+if(!progress.vocalesDone) progress.vocalesDone = defaultProgress().vocalesDone;
+if(!progress.rewardCounts) progress.rewardCounts = defaultProgress().rewardCounts;
+if(typeof config.targetSeconds !== "number") config.targetSeconds = 20;
+if(typeof config.musicVolume !== "number") config.musicVolume = 55;
+if(typeof config.musicEnabled !== "boolean") config.musicEnabled = true;
+
+function saveConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(config)); }
+function saveProgress(){ localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); }
+
+function selectedAlphabet(){
+  return ALPHABET.filter(function(l){ return config.selectedLetters[l]; });
+}
+
+/* ---------------- fullscreen toggle + forced portrait ----------------
+   Fullscreen API + Screen Orientation lock are used on a best-effort
+   basis (support varies a lot by browser, especially iOS Safari).
+   The CSS rotate-overlay is the real, always-working guarantee that
+   the app is used in portrait on phones/tablets. --------------------- */
+function isFullscreen(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function tryLockPortrait(){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      screen.orientation.lock("portrait").catch(function(){});
+    }
+  }catch(e){}
+}
+function enterFullscreen(){
+  var el = document.documentElement;
+  try{
+    var p = null;
+    if(el.requestFullscreen) p = el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) p = el.webkitRequestFullscreen();
+    if(p && typeof p.then === "function"){ p.then(tryLockPortrait).catch(function(){}); }
+    else { tryLockPortrait(); }
+  }catch(e){}
+}
+function exitFullscreen(){
+  try{
+    if(document.exitFullscreen){ document.exitFullscreen().catch(function(){}); }
+    else if(document.webkitExitFullscreen){ document.webkitExitFullscreen(); }
+  }catch(e){}
+}
+function updateFsToggle(){
+  var b = document.getElementById("fsToggle");
+  if(!b) return;
+  var fs = isFullscreen();
+  b.textContent = fs ? "🗗" : "⛶";
+  b.title = fs ? "Salir de pantalla completa" : "Pantalla completa";
+}
+document.addEventListener("fullscreenchange", updateFsToggle);
+document.addEventListener("webkitfullscreenchange", updateFsToggle);
+(function initFsToggle(){
+  var b = document.getElementById("fsToggle");
+  if(!b) return;
+  b.addEventListener("click", function(){
+    if(isFullscreen()){ exitFullscreen(); } else { enterFullscreen(); }
+  });
+})();
+function isMobileLike(){
+  try{ return window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 900; }
+  catch(e){ return window.innerWidth < 900; }
+}
+var autoFsAttempted = false;
+function autoFullscreenOnFirstGesture(){
+  if(autoFsAttempted) return;
+  autoFsAttempted = true;
+  if(isMobileLike() && !isFullscreen()){ enterFullscreen(); }
+}
+document.addEventListener("pointerdown", function attemptFs(){
+  autoFullscreenOnFirstGesture();
+  document.removeEventListener("pointerdown", attemptFs);
+}, {once:true});
+
+/* ---------------- speech + sound effects ---------------- */
+var voices = [];
+function loadVoices(){
+  if(!('speechSynthesis' in window)) return;
+  voices = window.speechSynthesis.getVoices();
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+function pickSpanishVoice(){
+  var esVoice = voices.find(function(v){ return /^es/i.test(v.lang); });
+  return esVoice || null;
+}
+function speak(text){
+  if(!config.voiceEnabled) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-ES";
+    var v = pickSpanishVoice();
+    if(v) u.voice = v;
+    u.rate = 0.95;
+    u.pitch = 1.15;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speakLetter(l){ speak(LETTER_SOUND[l] || l); }
+
+var audioCtx = null;
+function getCtx(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  return audioCtx;
+}
+function chime(kind){
+  if(!config.soundEnabled) return;
+  var ctx = getCtx();
+  if(!ctx) return;
+  if(ctx.state === "suspended"){ ctx.resume(); }
+  var now = ctx.currentTime;
+  var freqs;
+  if(kind === "trophy") freqs = [523.25,659.25,783.99,1046.5];
+  else if(kind === "good") freqs = [523.25,659.25,783.99];
+  else if(kind === "tick") freqs = [440];
+  else freqs = [330,262];
+  freqs.forEach(function(f,i){
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = f;
+    var dur = kind === "tick" ? 0.12 : 0.35;
+    gain.gain.setValueAtTime(0.0001, now + i*0.09);
+    gain.gain.linearRampToValueAtTime(kind==="tick"?0.1:0.18, now + i*0.09 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + i*0.09 + dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now + i*0.09);
+    osc.stop(now + i*0.09 + dur + 0.05);
+  });
+}
+function tick(){ chime("tick"); }
+
+/* ---------------- background music (per-game songs) ----------------
+   Files expected at: audio/001.mp3 ... audio/006.mp3
+   If the "audio" folder or files are missing, every call below is
+   wrapped so playback errors are silently ignored and the app keeps
+   working normally with no interruption. ------------------------- */
+var bgMusic = null;
+try{
+  bgMusic = document.createElement("audio");
+  bgMusic.loop = true;
+  bgMusic.preload = "none";
+  bgMusic.style.display = "none";
+  bgMusic.addEventListener("error", function(){ /* missing/broken file: ignore, app keeps working */ });
+  document.body.appendChild(bgMusic);
+}catch(e){ bgMusic = null; }
+
+var GAME_MUSIC = {
+  actConoceVocales:      "001.mp3",
+  actEncuentraVocales:   "002.mp3",
+  actOrdenaVocales:      "003.mp3",
+  actVocalConsonante:    "004.mp3",
+  actReconoceLetra:      "005.mp3",
+  actOrdenaAlfabeto:     "006.mp3"
+};
+function getMusicFile(screen, params){
+  if(screen === "actCompleta"){
+    return (params && params.mode === "quefalta") ? "005.mp3" : "006.mp3";
+  }
+  return GAME_MUSIC[screen] || null;
+}
+function applyMusicVolume(){
+  if(!bgMusic) return;
+  try{ bgMusic.volume = Math.min(1, Math.max(0, (config.musicVolume||0)/100)); }catch(e){}
+}
+function playGameMusic(screen, params){
+  if(!bgMusic) return;
+  var file = getMusicFile(screen, params);
+  if(!file || !config.musicEnabled){ stopGameMusic(); return; }
+  var src = "audio/" + file;
+  try{
+    if(bgMusic.getAttribute("data-current") !== src){
+      bgMusic.src = src;
+      bgMusic.setAttribute("data-current", src);
+    }
+    applyMusicVolume();
+    var p = bgMusic.play();
+    if(p && typeof p.catch === "function"){
+      p.catch(function(){ /* autoplay blocked or file missing: ignore, keep app usable */ });
+    }
+  }catch(e){ /* never let audio break the app */ }
+}
+function stopGameMusic(){
+  if(!bgMusic) return;
+  try{ bgMusic.pause(); }catch(e){}
+}
+
+/* ---------------- feedback UI ---------------- */
+var feedbackLayer = document.getElementById("feedbackLayer");
+var feedbackTimer = null;
+function showFeedback(text, kind){
+  feedbackLayer.textContent = text;
+  feedbackLayer.className = "feedback show " + (kind||"");
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(function(){
+    feedbackLayer.className = "feedback " + (kind||"");
+  }, 1500);
+}
+
+/* ---------------- activity timer ---------------- */
+var timerState = { startTime:null, intervalId:null };
+function startActivityTimer(){
+  stopActivityTimerVisual();
+  timerState.startTime = Date.now();
+  var badge = document.getElementById("timerBadge");
+  if(!badge) return;
+  timerState.intervalId = setInterval(function(){
+    var el = Math.floor((Date.now()-timerState.startTime)/1000);
+    var m = Math.floor(el/60), s = el%60;
+    var label = "⏱ " + m + ":" + (s<10?"0":"") + s;
+    var b = document.getElementById("timerBadge");
+    if(b){
+      b.textContent = label;
+      b.classList.toggle("urgent", el > config.targetSeconds*2);
+    }
+  }, 250);
+}
+function stopActivityTimerVisual(){
+  if(timerState.intervalId){ clearInterval(timerState.intervalId); timerState.intervalId=null; }
+}
+function elapsedSeconds(){
+  if(!timerState.startTime) return 0;
+  return (Date.now()-timerState.startTime)/1000;
+}
+function timerBadgeHTML(){
+  return '<div class="timer-badge" id="timerBadge">⏱ 0:00</div>';
+}
+
+/* ---------------- reward tiers (emoji scoring) ---------------- */
+var TIERS = [
+  { key:"trophy",    emoji:"🏆", label:"¡Tiempo récord!",  chime:"trophy" },
+  { key:"superstar", emoji:"🌟", label:"¡Súper rápido!",   chime:"good" },
+  { key:"star",      emoji:"⭐", label:"¡Muy bien!",       chime:"good" },
+  { key:"smiley",    emoji:"😊", label:"¡Lo lograste!",    chime:"good" }
+];
+function getRewardTier(seconds){
+  var target = config.targetSeconds || 20;
+  if(seconds <= target) return TIERS[0];
+  if(seconds <= target*1.6) return TIERS[1];
+  if(seconds <= target*2.4) return TIERS[2];
+  return TIERS[3];
+}
+function rewardStripHTML(){
+  var rc = progress.rewardCounts;
+  return '<div class="reward-strip">' +
+    '<span class="rw">🏆 '+rc.trophy+'</span>' +
+    '<span class="rw">🌟 '+rc.superstar+'</span>' +
+    '<span class="rw">⭐ '+rc.star+'</span>' +
+    '<span class="rw">😊 '+rc.smiley+'</span>' +
+  '</div>';
+}
+
+/* ---------------- celebration + effects ---------------- */
+function spawnConfetti(count){
+  var emojiSet = ["🎉","⭐","🌟","🎈","✨","🏆"];
+  for(var i=0;i<count;i++){
+    (function(i){
+      setTimeout(function(){
+        var el = document.createElement("div");
+        el.className = "confetti-piece";
+        el.textContent = pick(emojiSet);
+        el.style.left = (Math.random()*100)+"vw";
+        el.style.fontSize = (1 + Math.random()*1.4)+"rem";
+        var duration = 2.2 + Math.random()*1.6;
+        el.style.animationDuration = duration+"s";
+        document.body.appendChild(el);
+        setTimeout(function(){ el.remove(); }, duration*1000+200);
+      }, i*40);
+    })(i);
+  }
+}
+function spawnSparkles(count){
+  for(var i=0;i<count;i++){
+    (function(){
+      setTimeout(function(){
+        var el = document.createElement("div");
+        el.className = "sparkle";
+        el.textContent = pick(["✨","💫","⭐"]);
+        el.style.left = (20+Math.random()*60)+"vw";
+        el.style.top = (30+Math.random()*40)+"vh";
+        document.body.appendChild(el);
+        setTimeout(function(){ el.remove(); }, 1100);
+      }, i*80);
+    })();
+  }
+}
+function goldFlash(){
+  var el = document.createElement("div");
+  el.className = "gold-flash";
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 1000);
+}
+
+/**
+ * Finish an activity: stops the timer, computes the emoji reward tier from
+ * elapsed time, updates counters, shows the celebration overlay with
+ * "Continuar" (repeat/next round) and "Salir al menú" (home) buttons.
+ */
+function finishActivity(baseMessage){
+  stopActivityTimerVisual();
+  var secs = elapsedSeconds();
+  var tier = getRewardTier(secs);
+  progress.rewardCounts[tier.key] = (progress.rewardCounts[tier.key]||0) + 1;
+  saveProgress();
+
+  var m = Math.floor(secs), ms = Math.round((secs-m)*10);
+  var timeLabel = "⏱ " + m + "." + ms + "s";
+
+  var layer = document.createElement("div");
+  layer.className = "celebrate";
+  layer.innerHTML =
+    '<div class="big-emoji '+(tier.key==="trophy"?"tier-trophy":"")+'">'+tier.emoji+'</div>' +
+    '<div class="big-title" style="font-size:clamp(1.8rem,7.5vw,2.8rem)">'+tier.label+'</div>' +
+    (baseMessage ? '<div class="subtitle">'+baseMessage+'</div>' : '') +
+    '<div class="time-line">'+timeLabel+' &nbsp;·&nbsp; meta: '+config.targetSeconds+'s</div>' +
+    '<div class="btn-row">' +
+      '<button class="btn btn-continue" id="btnContinue">🔁 Continuar</button>' +
+      '<button class="btn btn-home" id="btnHome">🏠 Menú</button>' +
+    '</div>';
+  document.body.appendChild(layer);
+  requestAnimationFrame(function(){ layer.classList.add("show"); });
+
+  chime(tier.chime);
+  speak(tier.label);
+  if(tier.key === "trophy"){
+    spawnConfetti(40);
+    spawnSparkles(10);
+    goldFlash();
+  } else if(tier.key === "superstar"){
+    spawnConfetti(26);
+    spawnSparkles(4);
+  } else {
+    spawnConfetti(14);
+  }
+
+  document.getElementById("btnContinue").addEventListener("click", function(){
+    layer.classList.remove("show");
+    setTimeout(function(){ layer.remove(); }, 250);
+    var top = HISTORY[HISTORY.length-1];
+    if(typeof top === "string"){ render(top); }
+    else render(top.screen, top.params);
+  });
+  document.getElementById("btnHome").addEventListener("click", function(){
+    layer.classList.remove("show");
+    setTimeout(function(){ layer.remove(); }, 250);
+    goBack();
+  });
+}
+
+/* ---------------- background decoration ---------------- */
+function bgDeco(){
+  return '<div class="bg-deco">' +
+    '<div class="blob float-slow" style="width:220px;height:220px;background:#BFE3FF;top:-40px;left:-50px;"></div>' +
+    '<div class="blob float-x" style="width:180px;height:180px;background:#FFE3A6;bottom:-30px;right:-40px;"></div>' +
+    '<div class="blob float-slow2" style="width:140px;height:140px;background:#C9F2DE;bottom:20%;left:-30px;"></div>' +
+    '<div class="cloud float-slow" style="width:70px;height:26px;top:8%;right:12%;"></div>' +
+    '<div class="cloud float-slow2" style="width:50px;height:20px;top:16%;left:8%;"></div>' +
+  '</div>';
+}
+
+/* ---------------- router ---------------- */
+var app = document.getElementById("app");
+var HISTORY = ["splash"];
+
+function go(screen, params){
+  HISTORY.push({screen:screen, params:params||{}});
+  render(screen, params);
+}
+function goReplace(screen, params){
+  HISTORY[HISTORY.length-1] = {screen:screen, params:params||{}};
+  render(screen, params);
+}
+function goBack(){
+  if(HISTORY.length > 1){
+    HISTORY.pop();
+    var last = HISTORY[HISTORY.length-1];
+    if(typeof last === "string"){ render(last); }
+    else render(last.screen, last.params);
+  } else {
+    render("welcome");
+  }
+}
+
+function backButton(){
+  return '<button class="back-btn" id="backBtn" aria-label="Volver">←</button>';
+}
+function attachBack(){
+  var b = document.getElementById("backBtn");
+  if(b) b.addEventListener("click", goBack);
+}
+
+function gearButton(){
+  return '<button class="gear-btn" id="gearBtn" aria-label="Configuración">⚙️<span class="hold-ring" id="holdRing"></span></button>';
+}
+function attachGear(){
+  var gear = document.getElementById("gearBtn");
+  var ring = document.getElementById("holdRing");
+  if(!gear) return;
+  var holdTimer = null, progressTimer = null, p = 0;
+  function startHold(){
+    p = 0;
+    progressTimer = setInterval(function(){
+      p += 100/14;
+      ring.style.setProperty("--p", Math.min(p,100));
+      if(p>=100){ clearInterval(progressTimer); }
+    }, 100);
+    holdTimer = setTimeout(function(){
+      clearInterval(progressTimer);
+      go("adultConfig");
+    }, 1400);
+  }
+  function cancelHold(){
+    clearTimeout(holdTimer);
+    clearInterval(progressTimer);
+    ring.style.setProperty("--p", 0);
+  }
+  gear.addEventListener("pointerdown", startHold);
+  gear.addEventListener("pointerup", cancelHold);
+  gear.addEventListener("pointerleave", cancelHold);
+  gear.addEventListener("pointercancel", cancelHold);
+}
+
+function creditsButton(){
+  return '<button class="credits-btn" id="creditsBtn">ℹ️ Créditos</button>';
+}
+function attachCredits(){
+  var b = document.getElementById("creditsBtn");
+  if(b) b.addEventListener("click", function(){ go("credits"); });
+}
+
+function nameBadgeHTML(){
+  return '<button class="name-badge" id="nameBadge"><span class="avatar">🦉</span>' +
+    '<span>'+ (config.childName ? ("¡Hola, "+escapeHTML(config.childName)+"!") : "¡Escribe tu nombre!") +
+    '</span><span class="pencil">✏️</span></button>';
+}
+function attachNameBadge(){
+  var b = document.getElementById("nameBadge");
+  if(b) b.addEventListener("click", function(){ go("nameEntry", {fromMenu:true}); });
+}
+function escapeHTML(s){
+  var d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function nameKeyboardHTML(){
+  var html = '<div class="kb-wrap">';
+  html += '<div class="kb-letters" id="kbLetters">';
+  ALPHABET.forEach(function(l){
+    html += '<button type="button" class="kb-key" data-letter="'+l+'" style="background:'+colorFor(l)+'">'+l+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="kb-emojis" id="kbEmojis">';
+  NAME_EMOJIS.forEach(function(e){
+    html += '<button type="button" class="kb-emoji-key" data-emoji="'+e+'">'+e+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="kb-actions">' +
+    '<button type="button" class="small-btn" id="kbBackspace" title="Borrar letra">⌫</button>' +
+    '<button type="button" class="small-btn" id="kbClear" style="width:auto;padding:0 16px;">Borrar todo</button>' +
+  '</div>';
+  html += '</div>';
+  return html;
+}
+function attachNameKeyboard(input){
+  document.querySelectorAll(".kb-key").forEach(function(b){
+    b.addEventListener("click", function(){
+      if(textLen(input.value) >= 14) return;
+      input.value += b.dataset.letter;
+      tick();
+      input.focus();
+    });
+  });
+  document.querySelectorAll(".kb-emoji-key").forEach(function(b){
+    b.addEventListener("click", function(){
+      if(textLen(input.value) >= 14) return;
+      input.value += b.dataset.emoji;
+      tick();
+      input.focus();
+    });
+  });
+  document.getElementById("kbBackspace").addEventListener("click", function(){
+    input.value = Array.from(input.value).slice(0,-1).join("");
+    tick();
+  });
+  document.getElementById("kbClear").addEventListener("click", function(){
+    input.value = "";
+    tick();
+  });
+}
+
+/* ============================================================
+   SCREEN: splash intro
+   ============================================================ */
+function screenSplash(){
+  app.innerHTML =
+    '<div class="splash-screen" id="splashScreen">' +
+      '<div class="bg-deco">' +
+        '<div class="blob float-slow" style="width:200px;height:200px;background:#fff;top:-30px;left:-40px;"></div>' +
+        '<div class="blob float-x" style="width:160px;height:160px;background:#fff;bottom:-20px;right:-30px;"></div>' +
+      '</div>' +
+      '<div class="splash-sparkle float-slow" style="top:14%;left:12%;">✨</div>' +
+      '<div class="splash-sparkle float-slow2" style="top:20%;right:14%;">⭐</div>' +
+      '<div class="splash-sparkle float-x" style="bottom:16%;left:18%;">🌟</div>' +
+      '<div class="splash-content">' +
+        '<div class="splash-mascot">🦉</div>' +
+        '<h1 class="splash-title">Letrilandia</h1>' +
+        '<p class="splash-sub">¡Jugamos con las letras!</p>' +
+        '<div class="splash-bar"><div class="splash-bar-fill" id="splashFill"></div></div>' +
+        '<button class="splash-skip" id="splashSkip">Toca para continuar</button>' +
+      '</div>' +
+    '</div>';
+  chime("good");
+  var fill = document.getElementById("splashFill");
+  requestAnimationFrame(function(){
+    setTimeout(function(){ if(fill) fill.style.width = "100%"; }, 50);
+  });
+  var advanced = false;
+  function advance(){
+    if(advanced) return;
+    advanced = true;
+    autoFullscreenOnFirstGesture();
+    goReplace("welcome");
+  }
+  var autoTimer = setTimeout(advance, 2400);
+  document.getElementById("splashScreen").addEventListener("click", function(){
+    clearTimeout(autoTimer);
+    advance();
+  });
+}
+
+/* ============================================================
+   SCREEN: welcome
+   ============================================================ */
+function screenWelcome(){
+  app.innerHTML =
+    bgDeco() +
+    '<div class="screen">' +
+      '<div class="mascot">🦉</div>' +
+      '<h1 class="big-title">Letrilandia</h1>' +
+      '<p class="subtitle">¡Vamos a jugar con las letras!</p>' +
+      '<button class="btn btn-primary btn-big-play" id="playBtn">▶ JUGAR</button>' +
+    '</div>' +
+    gearButton() +
+    creditsButton();
+  document.getElementById("playBtn").addEventListener("click", function(){
+    chime("good");
+    autoFullscreenOnFirstGesture();
+    if(!config.childName){
+      goReplace("nameEntry", {fromMenu:false});
+    } else {
+      goReplace("mainMenu");
+    }
+  });
+  attachGear();
+  attachCredits();
+}
+
+/* ============================================================
+   SCREEN: name entry (with alphabetical keyboard + emojis)
+   ============================================================ */
+function screenNameEntry(params){
+  var fromMenu = params && params.fromMenu;
+  app.innerHTML =
+    bgDeco() +
+    (fromMenu ? backButton() : "") +
+    '<div class="screen name-screen">' +
+      '<div class="name-entry-panel">' +
+        '<div class="mascot" style="font-size:clamp(2.4rem,11vw,3.6rem);margin-top:8px;">✏️</div>' +
+        '<h1 class="big-title" style="font-size:clamp(1.5rem,6.5vw,2.1rem);margin:0;">¿Cómo te llamas?</h1>' +
+        '<input type="text" class="name-input" id="nameInput" maxlength="18" placeholder="Tu nombre" autocomplete="off">' +
+        nameKeyboardHTML() +
+        '<button class="btn btn-primary" id="nameSaveBtn">Listo ▶️</button>' +
+      '</div>' +
+    '</div>';
+  if(fromMenu) attachBack();
+  var input = document.getElementById("nameInput");
+  input.value = config.childName || "";
+  attachNameKeyboard(input);
+  setTimeout(function(){ input.focus(); }, 150);
+  function save(){
+    var v = input.value.trim();
+    config.childName = v.slice(0,18);
+    saveConfig();
+    chime("good");
+    if(config.childName) speak("¡Hola, " + config.childName + "!");
+    if(fromMenu){ goBack(); } else { goReplace("mainMenu"); }
+  }
+  document.getElementById("nameSaveBtn").addEventListener("click", save);
+  input.addEventListener("keydown", function(e){ if(e.key === "Enter") save(); });
+}
+
+/* ============================================================
+   SCREEN: credits
+   ============================================================ */
+function screenCredits(){
+  app.innerHTML =
+    bgDeco() + backButton() +
+    '<div class="screen">' +
+      '<div class="credits-card">' +
+        '<div class="credits-logo">🅺✨</div>' +
+        '<h2 class="big-title" style="font-size:clamp(1.5rem,6.5vw,2rem);">Kabert Studio Pro</h2>' +
+        '<p class="subtitle">Grupo Edulab by LMKE</p>' +
+        '<div class="credits-actions">' +
+          '<a class="btn btn-primary" href="https://wa.me/66596602" target="_blank" rel="noopener">💬 WhatsApp</a>' +
+          '<a class="btn btn-home" href="https://kabert-edulab.vercel.app/" target="_blank" rel="noopener">🌐 Sitio web</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  attachBack();
+}
+
+/* ============================================================
+   SCREEN: main menu
+   ============================================================ */
+function screenMainMenu(){
+  var hideAlfabeto = config.vowelsOnly;
+  app.innerHTML =
+    bgDeco() +
+    nameBadgeHTML() +
+    '<div class="screen">' +
+      '<h1 class="big-title" style="font-size:clamp(2rem,8vw,3rem);margin-top:36px;">Letrilandia</h1>' +
+      rewardStripHTML() +
+      '<div class="menu-grid ' + (hideAlfabeto ? "single" : "") + '">' +
+        '<button class="tile" id="tileVocales">' +
+          '<div class="tile-emoji">🌈</div><div class="tile-label">VOCALES</div>' +
+        '</button>' +
+        (hideAlfabeto ? '' :
+        '<button class="tile ' + (progress.alfabetoUnlocked ? "" : "locked") + '" id="tileAlfabeto">' +
+          '<div class="tile-emoji">🔤</div><div class="tile-label">ALFABETO</div>' +
+        '</button>') +
+      '</div>' +
+    '</div>' +
+    gearButton();
+  attachNameBadge();
+  document.getElementById("tileVocales").addEventListener("click", function(){
+    chime("good"); go("vocalesMenu");
+  });
+  var alfaTile = document.getElementById("tileAlfabeto");
+  if(alfaTile){
+    alfaTile.addEventListener("click", function(){
+      if(!progress.alfabetoUnlocked){
+        showFeedback("¡Primero terminemos Vocales!", "gentle");
+        chime("gentle");
+        return;
+      }
+      chime("good"); go("alfabetoMenu");
+    });
+  }
+  attachGear();
+}
+
+function maybeUnlockAlfabeto(){
+  var d = progress.vocalesDone;
+  if(d.conoce && d.encuentra && d.ordena && d.vocalConsonante){
+    if(!progress.alfabetoUnlocked){
+      progress.alfabetoUnlocked = true;
+      saveProgress();
+    }
+  }
+}
+
+/* ============================================================
+   SCREEN: vocales menu
+   ============================================================ */
+function screenVocalesMenu(){
+  var d = progress.vocalesDone;
+  app.innerHTML =
+    bgDeco() +
+    backButton() +
+    '<div class="screen">' +
+      '<h1 class="big-title" style="font-size:clamp(1.8rem,7vw,2.6rem)">🌈 Vocales</h1>' +
+      '<div class="menu-grid">' +
+        tileHTML("tConoce","👀","Conoce las vocales") +
+        tileHTML("tEncuentra","🔍","Encuentra las vocales") +
+        tileHTML("tOrdena","↔️","Ordena las vocales") +
+        tileHTML("tVC","🟢🔵","¿Vocal o consonante?") +
+      '</div>' +
+    '</div>';
+  attachBack();
+  function markDone(id, ok){ var e=document.getElementById(id); if(e && ok) e.querySelector('.tile-label').innerHTML += ' ✓'; }
+  markDone("tConoce", d.conoce); markDone("tEncuentra", d.encuentra); markDone("tOrdena", d.ordena); markDone("tVC", d.vocalConsonante);
+  document.getElementById("tConoce").addEventListener("click", function(){ go("actConoceVocales"); });
+  document.getElementById("tEncuentra").addEventListener("click", function(){ go("actEncuentraVocales"); });
+  document.getElementById("tOrdena").addEventListener("click", function(){ go("actOrdenaVocales"); });
+  document.getElementById("tVC").addEventListener("click", function(){ go("actVocalConsonante"); });
+}
+function tileHTML(id, emoji, label){
+  return '<button class="tile" id="'+id+'"><div class="tile-emoji">'+emoji+'</div>' +
+    '<div class="tile-label">'+label+'</div></button>';
+}
+
+/* ============================================================
+   SCREEN: alfabeto menu
+   ============================================================ */
+function screenAlfabetoMenu(){
+  app.innerHTML =
+    bgDeco() +
+    backButton() +
+    '<div class="screen">' +
+      '<h1 class="big-title" style="font-size:clamp(1.8rem,7vw,2.6rem)">🔤 Alfabeto</h1>' +
+      '<div class="menu-grid">' +
+        '<button class="tile" id="tRecon"><div class="tile-emoji">🧩</div><div class="tile-label">Encuentra la letra</div></button>' +
+        '<button class="tile" id="tOrdenAl"><div class="tile-emoji">↔️</div><div class="tile-label">Ordena el alfabeto</div></button>' +
+        '<button class="tile ' + (progress.completarUnlocked?'':'locked') + '" id="tCompleta"><div class="tile-emoji">➕</div><div class="tile-label">Completa el alfabeto</div></button>' +
+        '<button class="tile ' + (progress.quefaltaUnlocked?'':'locked') + '" id="tQueFalta"><div class="tile-emoji">❓</div><div class="tile-label">¿Qué letra falta?</div></button>' +
+      '</div>' +
+    '</div>';
+  attachBack();
+  document.getElementById("tRecon").addEventListener("click", function(){ go("actReconoceLetra"); });
+  document.getElementById("tOrdenAl").addEventListener("click", function(){ go("actOrdenaAlfabeto"); });
+  document.getElementById("tCompleta").addEventListener("click", function(){
+    if(!progress.completarUnlocked){ showFeedback("¡Sigue practicando para desbloquear!", "gentle"); return; }
+    go("actCompleta", {mode:"completa"});
+  });
+  document.getElementById("tQueFalta").addEventListener("click", function(){
+    if(!progress.quefaltaUnlocked){ showFeedback("¡Sigue practicando para desbloquear!", "gentle"); return; }
+    go("actCompleta", {mode:"quefalta"});
+  });
+}
+
+/* ============================================================
+   ACTIVITY 1: Conoce las vocales
+   ============================================================ */
+function screenConoceVocales(){
+  var tapped = {};
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction">Toca cada vocal para escucharla</p>' +
+      '<div class="row-wrap" id="vowelRow"></div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+  var row = document.getElementById("vowelRow");
+  VOWELS.forEach(function(l){
+    var btn = document.createElement("button");
+    btn.className = "letter-card";
+    btn.style.setProperty("--lc", colorFor(l));
+    btn.textContent = l;
+    btn.addEventListener("click", function(){
+      btn.classList.remove("correct"); void btn.offsetWidth; btn.classList.add("correct");
+      chime("good");
+      speakLetter(l);
+      tapped[l] = true;
+      if(Object.keys(tapped).length === VOWELS.length){
+        progress.vocalesDone.conoce = true;
+        saveProgress();
+        maybeUnlockAlfabeto();
+        setTimeout(function(){ finishActivity("Ya conoces las vocales"); }, 400);
+      }
+    });
+    row.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   ACTIVITY 2: Encuentra las vocales
+   ============================================================ */
+function screenEncuentraVocales(){
+  var round = 0, totalRounds = 3;
+  var found = {};
+  var targets = [];
+
+  function newRound(){
+    found = {};
+    var vowelsInRound = shuffle(VOWELS).slice(0,2);
+    var consInRound = shuffle(ALPHABET.filter(function(l){return !isVowel(l);})).slice(0,3);
+    targets = vowelsInRound;
+    var letters = shuffle(vowelsInRound.concat(consInRound));
+    var row = document.getElementById("findRow");
+    row.innerHTML = "";
+    letters.forEach(function(l){
+      var btn = document.createElement("button");
+      btn.className = "letter-card";
+      btn.style.setProperty("--lc", colorFor(l));
+      btn.textContent = l;
+      btn.addEventListener("click", function(){
+        if(isVowel(l)){
+          btn.classList.add("correct","done");
+          chime("good");
+          speak("¡Muy bien! " + l + " es una vocal");
+          found[l] = true;
+          if(Object.keys(found).length === targets.length){
+            round++;
+            if(round >= totalRounds){
+              progress.vocalesDone.encuentra = true;
+              saveProgress();
+              maybeUnlockAlfabeto();
+              setTimeout(function(){ finishActivity(); }, 350);
+            } else {
+              setTimeout(newRound, 500);
+            }
+          }
+        } else {
+          btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong");
+          chime("gentle");
+          showFeedback("¡Casi! Busca una vocal.", "gentle");
+        }
+      });
+      row.appendChild(btn);
+    });
+  }
+
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction">Encuentra las vocales</p>' +
+      '<div class="row-wrap" id="findRow"></div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+  newRound();
+}
+
+/* ============================================================
+   ACTIVITY 3: Ordena las vocales / alfabeto (drag & drop)
+   ============================================================ */
+function buildOrderActivity(opts){
+  var correctOrder = opts.letters;
+  var shuffled = shuffle(correctOrder);
+  var placed = new Array(correctOrder.length).fill(null);
+
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction">'+opts.instruction+'</p>' +
+      '<div class="order-area">' +
+        '<div class="slots-row" id="slotsRow"></div>' +
+        '<div class="bank-row" id="bankRow"></div>' +
+      '</div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+
+  var slotsRow = document.getElementById("slotsRow");
+  var bankRow = document.getElementById("bankRow");
+  correctOrder.forEach(function(_, i){
+    var s = document.createElement("div");
+    s.className = "slot";
+    s.dataset.index = i;
+    slotsRow.appendChild(s);
+  });
+
+  var dragEl = null, dragLetter = null, ghost = null;
+
+  function makeChip(l){
+    var chip = document.createElement("div");
+    chip.className = "letter-card draggable";
+    chip.style.setProperty("--lc", colorFor(l));
+    chip.textContent = l;
+    chip.dataset.letter = l;
+    chip.addEventListener("pointerdown", function(ev){ onDragStart(ev, chip, l); });
+    return chip;
+  }
+  shuffled.forEach(function(l){ bankRow.appendChild(makeChip(l)); });
+
+  function onDragStart(ev, chip, l){
+    ev.preventDefault();
+    dragEl = chip; dragLetter = l;
+    var rect = chip.getBoundingClientRect();
+    ghost = chip.cloneNode(true);
+    ghost.classList.add("dragging");
+    ghost.style.width = rect.width+"px";
+    ghost.style.height = rect.height+"px";
+    ghost.style.left = rect.left+"px";
+    ghost.style.top = rect.top+"px";
+    document.body.appendChild(ghost);
+    chip.style.opacity = "0.25";
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd);
+  }
+  function onDragMove(ev){
+    if(!ghost) return;
+    var w = ghost.offsetWidth, h = ghost.offsetHeight;
+    ghost.style.left = (ev.clientX - w/2)+"px";
+    ghost.style.top = (ev.clientY - h/2)+"px";
+  }
+  function onDragEnd(ev){
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragEnd);
+    var dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
+    var slot = dropTarget ? dropTarget.closest(".slot") : null;
+    if(ghost){ ghost.remove(); ghost=null; }
+    if(dragEl) dragEl.style.opacity = "1";
+
+    if(slot && !slot.classList.contains("filled")){
+      var idx = parseInt(slot.dataset.index,10);
+      if(correctOrder[idx] === dragLetter){
+        slot.classList.add("filled");
+        slot.style.background = colorFor(dragLetter);
+        slot.textContent = dragLetter;
+        placed[idx] = dragLetter;
+        dragEl.remove();
+        chime("good");
+        speakLetter(dragLetter);
+        var allFilled = placed.every(function(x){ return x !== null; });
+        if(allFilled){
+          setTimeout(function(){ opts.onComplete(); }, 300);
+        }
+      } else {
+        slot.classList.remove("wrong"); void slot.offsetWidth; slot.classList.add("wrong");
+        chime("gentle");
+        showFeedback("¡Inténtalo otra vez!", "gentle");
+        setTimeout(function(){ slot.classList.remove("wrong"); }, 450);
+      }
+    }
+    dragEl = null; dragLetter = null;
+  }
+}
+
+function screenOrdenaVocales(){
+  buildOrderActivity({
+    letters: VOWELS.slice(),
+    instruction: "Ordena las vocales de la A a la U",
+    onComplete: function(){
+      progress.vocalesDone.ordena = true;
+      saveProgress();
+      maybeUnlockAlfabeto();
+      finishActivity();
+    }
+  });
+}
+
+/* ============================================================
+   ACTIVITY 4: ¿Vocal o consonante?
+   ============================================================ */
+function screenVocalConsonante(){
+  var round = 0, totalRounds = 5;
+  var pool = selectedAlphabet().length ? selectedAlphabet() : ALPHABET.slice();
+  var current = null;
+
+  function newRound(){
+    current = pick(pool);
+    document.getElementById("bigLetter").textContent = current;
+    document.getElementById("bigLetter").style.background = colorFor(current);
+    speakLetter(current);
+  }
+  function attempt(answerIsVowel){
+    var correct = isVowel(current) === answerIsVowel;
+    if(correct){
+      chime("good");
+      round++;
+      document.getElementById("bigLetter").classList.add("correct");
+      if(round >= totalRounds){
+        progress.vocalesDone.vocalConsonante = true;
+        saveProgress();
+        maybeUnlockAlfabeto();
+        setTimeout(function(){ finishActivity(); }, 300);
+      } else {
+        setTimeout(function(){
+          document.getElementById("bigLetter").classList.remove("correct");
+          newRound();
+        }, 500);
+      }
+    } else {
+      chime("gentle");
+      showFeedback("¡Inténtalo otra vez!", "gentle");
+      var el = document.getElementById("bigLetter");
+      el.classList.remove("wrong"); void el.offsetWidth; el.classList.add("wrong");
+    }
+  }
+
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction">¿Es una vocal?</p>' +
+      '<button class="letter-card" id="bigLetter" style="width:clamp(110px,32vw,160px);height:clamp(110px,32vw,160px);font-size:clamp(3rem,14vw,5rem);cursor:default;"></button>' +
+      '<div class="choice-row">' +
+        '<button class="choice-btn" id="btnVocal" style="background:var(--green-ok)">🟢 VOCAL</button>' +
+        '<button class="choice-btn" id="btnCons" style="background:#5B8DEF">🔵 CONSONANTE</button>' +
+      '</div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+  document.getElementById("btnVocal").addEventListener("click", function(){ attempt(true); });
+  document.getElementById("btnCons").addEventListener("click", function(){ attempt(false); });
+  newRound();
+}
+
+/* ============================================================
+   ALFABETO: Encuentra la letra
+   ============================================================ */
+function screenReconoceLetra(){
+  var round = 0, totalRounds = 5;
+  var pool = selectedAlphabet().length >= 4 ? selectedAlphabet() : ALPHABET.slice();
+  var target = null;
+
+  function newRound(){
+    target = pick(pool);
+    var others = shuffle(pool.filter(function(l){return l!==target;})).slice(0,4);
+    var letters = shuffle([target].concat(others));
+    document.getElementById("reconInstr").textContent = "Encuentra la letra " + target;
+    speak("Encuentra la letra " + (LETTER_SOUND[target]||target));
+    var row = document.getElementById("reconRow");
+    row.innerHTML = "";
+    letters.forEach(function(l){
+      var btn = document.createElement("button");
+      btn.className = "letter-card";
+      btn.style.setProperty("--lc", colorFor(l));
+      btn.textContent = l;
+      btn.addEventListener("click", function(){
+        if(l === target){
+          btn.classList.add("correct");
+          chime("good");
+          round++;
+          if(round >= totalRounds){
+            progress.completarUnlocked = true;
+            saveProgress();
+            setTimeout(function(){ finishActivity(); }, 350);
+          } else {
+            setTimeout(newRound, 500);
+          }
+        } else {
+          btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong");
+          chime("gentle");
+          showFeedback("Busca otra letra.", "gentle");
+        }
+      });
+      row.appendChild(btn);
+    });
+  }
+
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction" id="reconInstr"></p>' +
+      '<div class="row-wrap" id="reconRow"></div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+  newRound();
+}
+
+/* ============================================================
+   ALFABETO: Ordena el alfabeto (progresivo)
+   ============================================================ */
+function screenOrdenaAlfabeto(){
+  var pool = selectedAlphabet();
+  if(pool.length < 3) pool = ALPHABET.slice();
+  var n = Math.min(Math.max(progress.ordenaAlfabetoLevel,3), pool.length);
+  var letters = pool.slice(0, n);
+
+  buildOrderActivity({
+    letters: letters,
+    instruction: "Ordena las letras en su lugar",
+    onComplete: function(){
+      progress.ordenaAlfabetoLevel = Math.min(n+1, pool.length);
+      if(progress.ordenaAlfabetoLevel >= 5){ progress.completarUnlocked = true; }
+      if(progress.ordenaAlfabetoLevel >= 6){ progress.quefaltaUnlocked = true; }
+      saveProgress();
+      finishActivity();
+    }
+  });
+}
+
+/* ============================================================
+   ALFABETO: Completa el alfabeto / ¿Qué letra falta?
+   ============================================================ */
+function screenCompleta(params){
+  var mode = params && params.mode === "quefalta" ? "quefalta" : "completa";
+  var seqLen = mode === "quefalta" ? 5 : 4;
+  var pool = ALPHABET;
+  var round = 0, totalRounds = 4;
+  var correctLetter = null;
+
+  function newRound(){
+    var maxStart = pool.length - seqLen;
+    var start = Math.floor(Math.random()*(maxStart+1));
+    var seq = pool.slice(start, start+seqLen);
+    var blankIdx = 1 + Math.floor(Math.random()*(seqLen-2));
+    correctLetter = seq[blankIdx];
+    var display = seq.map(function(l,i){ return i===blankIdx ? "_" : l; }).join("  ");
+    document.getElementById("seqDisplay").textContent = display;
+    speak("¿Qué letra falta?");
+
+    var distractors = shuffle(ALPHABET.filter(function(l){ return l!==correctLetter; })).slice(0,2);
+    var options = shuffle([correctLetter].concat(distractors));
+    var row = document.getElementById("choiceRow");
+    row.innerHTML = "";
+    options.forEach(function(l){
+      var btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.style.background = colorFor(l);
+      btn.textContent = l;
+      btn.addEventListener("click", function(){
+        if(l === correctLetter){
+          btn.classList.add("correct");
+          chime("good");
+          round++;
+          if(round >= totalRounds){
+            if(mode==="completa"){ progress.quefaltaUnlocked = true; }
+            saveProgress();
+            setTimeout(function(){ finishActivity(); }, 300);
+          } else {
+            setTimeout(newRound, 600);
+          }
+        } else {
+          btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong");
+          chime("gentle");
+          showFeedback("¡Inténtalo otra vez!", "gentle");
+        }
+      });
+      row.appendChild(btn);
+    });
+  }
+
+  app.innerHTML =
+    bgDeco() + backButton() + timerBadgeHTML() +
+    '<div class="screen">' +
+      '<p class="instruction">' + (mode==="quefalta" ? "¿Qué letra falta?" : "Completa el alfabeto") + '</p>' +
+      '<div class="big-title" id="seqDisplay" style="font-size:clamp(2.2rem,10vw,3.6rem);letter-spacing:6px;"></div>' +
+      '<div class="choice-row" id="choiceRow"></div>' +
+    '</div>';
+  attachBack();
+  startActivityTimer();
+  newRound();
+}
+
+/* ============================================================
+   SCREEN: adult config
+   ============================================================ */
+function screenAdultConfig(){
+  var letters = ALPHABET;
+  app.innerHTML =
+    bgDeco() + backButton() +
+    '<div class="screen top-align">' +
+      '<div class="config-panel">' +
+        '<h2 class="big-title" style="font-size:1.6rem;margin-top:44px;">⚙️ Configuración</h2>' +
+        '<p class="subtitle" style="margin-bottom:18px;">Panel para adultos</p>' +
+
+        '<div class="config-section">' +
+          '<h3>Nombre del niño o niña</h3>' +
+          '<div class="name-field">' +
+            '<input type="text" id="cfgNameInput" maxlength="18" placeholder="Nombre" value="'+escapeHTML(config.childName||"")+'">' +
+            '<button class="small-btn" id="cfgNameSave" style="width:auto;padding:0 16px;">Guardar</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<h3>Tiempo objetivo por actividad</h3>' +
+          '<div class="stepper-row">' +
+            '<button class="small-btn" id="timeDown">−</button>' +
+            '<span class="stepper-val" id="timeVal">'+config.targetSeconds+'s</span>' +
+            '<button class="small-btn" id="timeUp">+</button>' +
+          '</div>' +
+          '<p class="hint-text">Tiempo para ganar el trofeo 🏆 al completar una actividad.</p>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<h3>Música de cada juego</h3>' +
+          '<div class="toggle-row"><span>Música activada</span>' +
+            '<button class="switch '+(config.musicEnabled?'on':'')+'" id="swMusic"></button></div>' +
+          '<div class="volume-row">' +
+            '<span>🔈</span>' +
+            '<input type="range" id="musicVolumeRange" min="0" max="100" value="'+config.musicVolume+'">' +
+            '<span>🔊</span>' +
+            '<span class="volume-val" id="musicVolumeVal">'+config.musicVolume+'%</span>' +
+          '</div>' +
+          '<p class="hint-text">Cada juego reproduce su propia canción desde la carpeta <b>audio/</b> (001.mp3–006.mp3). Si un archivo no está disponible, el juego sigue funcionando sin música.</p>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<h3>Pantalla</h3>' +
+          '<div class="toggle-row"><span>Pantalla completa</span>' +
+            '<button class="switch '+(isFullscreen()?'on':'')+'" id="swFullscreen"></button></div>' +
+          '<p class="hint-text">En celular o tablet la app siempre se usa en modo vertical.</p>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<div class="toggle-row"><span>Solo vocales</span>' +
+            '<button class="switch '+(config.vowelsOnly?'on':'')+'" id="swVowelsOnly"></button></div>' +
+          '<div class="toggle-row"><span>Voz activada</span>' +
+            '<button class="switch '+(config.voiceEnabled?'on':'')+'" id="swVoice"></button></div>' +
+          '<div class="toggle-row"><span>Efectos de sonido</span>' +
+            '<button class="switch '+(config.soundEnabled?'on':'')+'" id="swSound"></button></div>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<h3>Letras del alfabeto a practicar</h3>' +
+          '<div class="letters-grid" id="lettersGrid"></div>' +
+        '</div>' +
+
+        '<div class="config-section">' +
+          '<h3>Progreso</h3>' +
+          '<button class="danger-btn" id="resetBtn">Reiniciar progreso</button>' +
+        '</div>' +
+
+        '<div class="config-section" style="display:flex;justify-content:center;">' +
+          '<button class="small-btn" id="cfgCreditsBtn" style="width:auto;padding:0 20px;">ℹ️ Créditos</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  attachBack();
+
+  document.getElementById("cfgCreditsBtn").addEventListener("click", function(){ go("credits"); });
+
+  document.getElementById("cfgNameSave").addEventListener("click", function(){
+    var v = document.getElementById("cfgNameInput").value.trim();
+    config.childName = v.slice(0,18);
+    saveConfig();
+    showFeedback("Nombre guardado", "good");
+  });
+
+  var timeVal = document.getElementById("timeVal");
+  document.getElementById("timeDown").addEventListener("click", function(){
+    config.targetSeconds = Math.max(5, config.targetSeconds - 5);
+    timeVal.textContent = config.targetSeconds + "s";
+    saveConfig();
+  });
+  document.getElementById("timeUp").addEventListener("click", function(){
+    config.targetSeconds = Math.min(120, config.targetSeconds + 5);
+    timeVal.textContent = config.targetSeconds + "s";
+    saveConfig();
+  });
+
+  document.getElementById("swMusic").addEventListener("click", function(e){
+    config.musicEnabled = !config.musicEnabled;
+    e.target.classList.toggle("on");
+    saveConfig();
+    if(!config.musicEnabled){ stopGameMusic(); }
+  });
+  document.getElementById("musicVolumeRange").addEventListener("input", function(e){
+    config.musicVolume = parseInt(e.target.value, 10);
+    document.getElementById("musicVolumeVal").textContent = config.musicVolume + "%";
+    applyMusicVolume();
+    saveConfig();
+  });
+
+  document.getElementById("swFullscreen").addEventListener("click", function(e){
+    if(isFullscreen()){ exitFullscreen(); } else { enterFullscreen(); }
+    setTimeout(function(){ e.target.classList.toggle("on", isFullscreen()); }, 200);
+  });
+
+  var grid = document.getElementById("lettersGrid");
+  letters.forEach(function(l){
+    var b = document.createElement("button");
+    b.className = "letter-check" + (config.selectedLetters[l] ? " checked":"");
+    b.textContent = l;
+    b.addEventListener("click", function(){
+      config.selectedLetters[l] = !config.selectedLetters[l];
+      b.classList.toggle("checked");
+      saveConfig();
+    });
+    grid.appendChild(b);
+  });
+
+  document.getElementById("swVowelsOnly").addEventListener("click", function(e){
+    config.vowelsOnly = !config.vowelsOnly;
+    e.target.classList.toggle("on");
+    saveConfig();
+  });
+  document.getElementById("swVoice").addEventListener("click", function(e){
+    config.voiceEnabled = !config.voiceEnabled;
+    e.target.classList.toggle("on");
+    saveConfig();
+  });
+  document.getElementById("swSound").addEventListener("click", function(e){
+    config.soundEnabled = !config.soundEnabled;
+    e.target.classList.toggle("on");
+    saveConfig();
+  });
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(confirm("¿Reiniciar todo el progreso del niño?")){
+      progress = defaultProgress();
+      saveProgress();
+      showFeedback("Progreso reiniciado", "good");
+    }
+  });
+}
+
+/* ============================================================
+   render dispatcher
+   ============================================================ */
+var GAME_SCREENS = ["actConoceVocales","actEncuentraVocales","actOrdenaVocales",
+  "actVocalConsonante","actReconoceLetra","actOrdenaAlfabeto","actCompleta"];
+
+function render(screen, params){
+  window.scrollTo(0,0);
+
+  if(GAME_SCREENS.indexOf(screen) !== -1){
+    playGameMusic(screen, params);
+  } else {
+    stopGameMusic();
+  }
+
+  switch(screen){
+    case "splash": return screenSplash();
+    case "welcome": return screenWelcome();
+    case "nameEntry": return screenNameEntry(params);
+    case "credits": return screenCredits();
+    case "mainMenu": return screenMainMenu();
+    case "vocalesMenu": return screenVocalesMenu();
+    case "alfabetoMenu": return screenAlfabetoMenu();
+    case "actConoceVocales": return screenConoceVocales();
+    case "actEncuentraVocales": return screenEncuentraVocales();
+    case "actOrdenaVocales": return screenOrdenaVocales();
+    case "actVocalConsonante": return screenVocalConsonante();
+    case "actReconoceLetra": return screenReconoceLetra();
+    case "actOrdenaAlfabeto": return screenOrdenaAlfabeto();
+    case "actCompleta": return screenCompleta(params);
+    case "adultConfig": return screenAdultConfig();
+    default: return screenWelcome();
+  }
+}
+
+/* init */
+render("splash");
+
+/* unlock audio on first user gesture (mobile autoplay requirement) */
+document.addEventListener("pointerdown", function unlockAudio(){
+  var ctx = getCtx();
+  if(ctx && ctx.state === "suspended") ctx.resume();
+  document.removeEventListener("pointerdown", unlockAudio);
+}, {once:true});
+
+/* register service worker for offline use + installability */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){ /* ignore if unavailable */ });
+  });
+}
+
+})();
+</script>
+</body>
+</html>

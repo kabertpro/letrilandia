@@ -1,0 +1,22 @@
+Coloca aquí tus 6 canciones con estos nombres exactos:
+
+001.mp3
+002.mp3
+003.mp3
+004.mp3
+005.mp3
+006.mp3
+
+Asignación actual dentro del juego (puedes reordenar los archivos según
+qué canción quieras para cada actividad, o pedirle a Claude que cambie
+el mapa GAME_MUSIC en el código):
+
+001.mp3 -> Conoce las vocales
+002.mp3 -> Encuentra las vocales
+003.mp3 -> Ordena las vocales
+004.mp3 -> ¿Vocal o consonante?
+005.mp3 -> Encuentra la letra / ¿Qué letra falta?
+006.mp3 -> Ordena el alfabeto / Completa el alfabeto
+
+Si un archivo falta o no carga, el juego sigue funcionando con
+normalidad, simplemente sin música de fondo en esa actividad.
